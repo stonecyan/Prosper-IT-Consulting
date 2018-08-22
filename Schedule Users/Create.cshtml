@@ -1,0 +1,156 @@
+﻿@model ScheduleUsers.Areas.Employer.ViewModels.ScheduleViewModel
+
+
+@{
+    ViewBag.Title = "Create";
+}
+
+
+
+<div class="dropdown">
+    <div class="col-sm-6 col-md-4 col-lg-3 padding-none my-1">
+        <button class="btn btn-default btn-block dropdown-toggle" type="button" data-toggle="dropdown">
+            Employees
+            <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu">
+            @foreach (var user in ViewBag.Users)
+            {
+                <li><a onclick="loadCreate('@user.Value')">@user.Text</a></li>
+            }
+        </ul>
+    </div>
+</div>
+
+
+<div id="PartialForm">
+
+</div>
+
+<script>
+
+    function loadCreate(Id) {
+        jQuery.ajax({
+            'url': '@Url.Action("LoadCreateEdit")',
+            'type': 'GET',
+            'data': {
+                Id: Id
+            },
+            //All datepicker javascript is loaded after data is loaded into Partial View
+            'success': function (data) {
+                document.getElementById("PartialForm").innerHTML = data;
+                var startDate = document.getElementById("start").value;
+         
+                $("#ScheduleStartDay").datepicker({
+                    changeMonth: true,
+                    changeYear: true,
+                    yearRange: "-5:+5",
+                    controlType: 'select',
+                    // This function sets the earliest date allowed for end date to ensure
+                    // no negative time vacations
+                    onClose: function (dateText) {
+                        if (dateText != null) {
+                            $("#ScheduleLengthSubmit").trigger("click");
+                        }
+                    },
+                });
+                $("#ScheduleEndDay").datepicker({
+                    changeMonth: true,
+                    changeYear: true,
+                    yearRange: "-5:+5",
+                    controlType: 'select',
+                });
+                $(".time-picker").datetimepicker({
+                    controlType: 'select',
+                    timeFormat: 'hh:mm TT',
+                    formattedDate: 'dd-mm-yy'
+                });
+
+                $('#ScheduleStartDay').datepicker("change", { minDate: startDate });
+                $('#ScheduleEndDay').datepicker("change", { minDate: startDate });
+
+                //Set the date and date range for 'time picker' datetimepickers
+                //this is REALLY SLOW
+                //might try to move to on focus event, but that closes the calendar first time it fires.
+                //- pass smaller context to the initial selector
+                var startTimePickers = document.getElementsByClassName("start-time-picker");
+                for (i = 0, len = startTimePickers.length; i < len; i++) {
+                    var id = startTimePickers[i].id;
+                    var index = id.match(/\d+/);
+                    var eachStartDate = new Date(startDate);
+                    eachStartDate.setDate(+eachStartDate.getDate() + +index);
+                    $(startTimePickers[i]).datetimepicker("change", { minDate: new Date(eachStartDate), maxDate: new Date(eachStartDate) });
+                }
+                var endTimePickers = document.getElementsByClassName("end-time-picker");
+                for (i = 0, len = endTimePickers.length; i < len; i++) {
+                    var id = endTimePickers[i].id;
+                    var index = id.match(/\d+/);
+                    var eachStartDate = new Date(startDate);
+                    var eachEndDate = new Date(startDate);
+                    eachStartDate.setDate(+eachStartDate.getDate() + +index);
+                    eachEndDate.setDate(+eachEndDate.getDate() + +index + 1);
+                    $(endTimePickers[i]).datetimepicker("change", { minDate: new Date(eachStartDate), maxDate: new Date(eachEndDate) });
+                }
+
+                $(".worktypes").change(function () {
+                    var item = $(this).find("option:selected");
+                    var text = item.html(); //get the selected option text
+                    if (text == "Add New Worktype") {
+                        var idTriggered = $(this).prop('id');
+                        $("#worktypesModal").modal(); //display the add new dialog
+                        document.getElementById("triggeringId").value = idTriggered;
+                    }
+                });
+                $(".worktypes").focus(function () {
+                    var item = $(this).find("option:selected");
+                    var text = item.html(); //get the selected option text
+                    if (text == "Add New Worktype") {
+                        var idTriggered = $(this).prop('id');
+                        $("#worktypesModal").modal(); //display the add new dialog
+                        document.getElementById("triggeringId").value = idTriggered;
+                    }
+                });
+                $("#btnAddNewWorktype").click(function () {
+                    var newItem = $("#txtNewOption").val(); //get the new value
+                    var newOption = document.createElement("option");
+                    newOption.text = newItem;
+                    newOption.value = newItem;
+                    var changeWorkTypeOf = document.getElementById("triggeringId").value;
+                    document.getElementById(changeWorkTypeOf).add(newOption);
+                    document.getElementById(changeWorkTypeOf).value = newItem;
+                    $('#worktypesModal').modal('hide');
+                    document.getElementById("ScheduleLengthSubmit").click();
+                });
+            },
+            'error': function (request, error) {
+                alert("Request: " + JSON.stringify(request));
+            }
+        });
+        
+
+
+        jQuery.validator.methods.date = function (value, element) {
+            var isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+            if (isChrome) {
+                var d = new Date();
+                return this.optional(element) || !/Invalid|NaN/.test(new Date(d.toLocaleDateString(value)));
+            } else {
+                return this.optional(element) || !/Invalid|NaN/.test(new Date(value));
+            }
+        };
+        
+    }
+
+    function addRow() {
+        var obj = document.getElementById("ScheduleLength");
+        var currentLength = parseInt(obj.value);
+        newLength = currentLength + 1;
+        document.getElementById("ScheduleLength").value = newLength;
+        document.getElementById("ScheduleLengthSubmit").click();
+    }
+    
+</script>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}

@@ -1,0 +1,153 @@
+﻿@model ScheduleUsers.Areas.Employer.ViewModels.ScheduleViewModel
+
+
+@using (Ajax.BeginForm("FormCreate", "Schedule", new AjaxOptions { HttpMethod="POST", UpdateTargetId="PartialForm",InsertionMode=InsertionMode.Replace}))
+{
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal">
+        <h4>for User @Model.FirstName @Model.LastName</h4>
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        @Html.HiddenFor(x => x.UserId)
+        @Html.HiddenFor(x => x.MaxScheduleLength)
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.ScheduleStartDay, htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10" id="StartDay">
+                @Html.EditorFor(model => model.ScheduleStartDay, new { htmlAttributes = new { @Value = Model.ScheduleStartDay.Value, @class = "form-control date-picker", @id="start" } })
+                @Html.ValidationMessageFor(model => model.ScheduleStartDay, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.ScheduleEndDay, htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.ScheduleEndDay, new { htmlAttributes = new { @class = "form-control date-picker" } })
+                @Html.ValidationMessageFor(model => model.ScheduleEndDay, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.Repeating, "Repeating?", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.CheckBox("Repeating")
+                @Html.ValidationMessageFor(model => model.Repeating, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.Notes, htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.Notes, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.Notes, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <div class="col-md-2 text-right">
+                <label for="scheduleLength">Schedule Length (days):</label>
+            </div>
+            <div class="col-md-2">
+                <input type="number" id="ScheduleLength" class="form-control" name="ScheduleLength" min="1" max="@Model.MaxScheduleLength" value="@Model.WorkPeriods.Count()" />
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-2">
+            </div>
+            <div class="col-md-2">
+                <input type="submit" name="submit" value="Change Schedule" class="btn btn-default" id="ScheduleLengthSubmit" />
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <div class="col-md-2 text-right">
+                <h4>Date</h4>
+            </div>
+            <div class="col-md-1">
+                <h4>Day Off?</h4>
+            </div>
+            <div class="col-md-3">
+                <h4>Start Time</h4>
+            </div>
+            <div class="col-md-3">
+                <h4>End Time</h4>
+            </div>
+            <div class="col-md-2">
+                <h4>Work Type</h4>
+            </div>
+            <div class="col-md-1">
+                <h4>Pay Rate</h4>
+            </div>
+        </div>
+        <div id="WorkPeriodTable">
+            @for (int i = 0; i < Model.WorkPeriods.Count; i++)
+            {
+                <div class="form-group row WorkPeriodRow">
+                    <div class="col-md-2 text-right">
+                        @(Model.ScheduleStartDay.Value.AddDays(i).DayOfWeek + " " + Model.ScheduleStartDay.Value.AddDays(i).ToShortDateString())
+                    </div>
+                    <div class="col-md-1">
+                        @Html.DropDownListFor(model => model.WorkPeriods[i].IsDayOff, Model.IsDayOffList)
+                        @Html.ValidationMessageFor(model => model.WorkPeriods[i].IsDayOff, "", new { @class = "text-danger" })
+                    </div>
+                    <div class="col-md-3">
+                        @Html.EditorFor(model => model.WorkPeriods[i].StartTime, new { htmlAttributes = new { @class = "form-control date-picker time-picker start-time-picker" } })
+                        @Html.ValidationMessageFor(model => model.WorkPeriods[i].StartTime, "", new { @class = "text-danger" })
+                    </div>
+                    <div class="col-md-3">
+                        @Html.EditorFor(model => model.WorkPeriods[i].EndTime, new { htmlAttributes = new { @class = "form-control date-picker time-picker end-time-picker" } })
+                        @Html.ValidationMessageFor(model => model.WorkPeriods[i].EndTime, "", new { @class = "text-danger" })
+                    </div>
+                    <div class="col-md-2">
+                        @Html.DropDownListFor(model => model.WorkPeriods[i].WorkType, (IEnumerable<SelectListItem>)ViewBag.WorkTypeList, "Select Worktype", new { @class = "worktypes" })
+                        @Html.ValidationMessageFor(model => model.WorkPeriods[i].WorkType, "", new { @class = "text-danger" })
+                    </div>
+                    <div class="col-md-1">
+                        @Html.EditorFor(model => model.WorkPeriods[i].PayRate, new { htmlAttributes = new { @class = "form-control" } })
+                        @Html.ValidationMessageFor(model => model.WorkPeriods[i].PayRate, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="button" onclick="addRow()" name="addrow" id="addrow" value="Add one Work Period" class="btn btn-default" />
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" name="submit" value="Save Schedule" class="btn btn-default" />
+            </div>
+        </div>
+    </div>
+}
+
+<div>
+    @Html.ActionLink("Back to List", "Index")
+</div>
+
+<!-- New Worktype Modal -->
+<div id="worktypesModal" class="modal fade">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span> <span class="sr-only">close</span></button>
+                <h4 id="modalTitle" class="modal-title">Add New Worktype</h4>
+            </div>
+            <div id="modalBody" class="modal-body">
+                <input id="txtNewOption" type="text" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btnAddNewWorktype" value="AddNewItem" class="btn btn-default" data-dismiss="modal">Save and Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /New Worktype Modal -->
+<script>
+    var startDate = new Date('@Model.ScheduleStartDay.Value')
+</script>

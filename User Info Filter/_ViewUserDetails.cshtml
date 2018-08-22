@@ -1,0 +1,203 @@
+﻿@model ScheduleUsers.ViewModels.UserDetailsViewModel
+
+<div class="details-container">
+    <div class="tab-div">
+        <ul class="nav nav-tabs">
+            <li class="active view-details"><a data-toggle="tab" href="#admin-view-details">Details <span id="editDetailsIcon" onclick="editDetails()"><i class="fa fa-pencil-square-o"></i></span></a></li>
+            <li class="view-details"><a data-toggle="tab" onclick="showEventCalendar()" href="#admin-view-work-periods">Work Periods <i class="fa fa-pencil-square-o"></i></a></li>
+            <li class="view-details"><a data-toggle="tab" onclick="showSchedule()" href="#admin-view-schedule">Schedule <i class="fa fa-pencil-square-o"></i></a></li>
+            <li class="view-details"><a data-toggle="tab" onclick="showDeleteAndBlock('@Model.Id', '@Model.CurrentRole')" href="#admin-view-toggles">Delete/Block<i class="fa fa-pencil-square-o"></i></a></li>
+        </ul>
+    </div>
+
+    <div class="tab-content">
+        <div style="overflow: auto; height: 100%;" id="admin-view-details" class="tab-pane fade in active">
+
+            <!---->
+            <div class="photo-container">
+                <div class="alignthis">
+                    <div class="photo-placeholder">
+                        <img class="img-responsive" src="~/Images/The-Tech-Academy-Logo.png" />
+                    </div>
+                    <br />
+                    <p style="margin-left: 10px;">Status: @Html.DisplayFor(modelItem => Model.Status)</p>
+                    <p style="margin-left: 10px;">Next Scheduled: @Html.DisplayFor(modelItem => Model.NextScheduled)</p>
+                    <p style="margin-left: 10px;" id="role">Role: @Html.DisplayFor(modelItem => Model.CurrentRole)</p>
+                    <div style="margin-left: 10px;" class="edit-delete">
+                        <button id="saveChangesButton" class="btn btn-primary" style="display: none;" onclick="handleSaveChanges()">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+
+            <input id="detailsUserId" type="hidden" value="@Model.Id" />
+            <table id="detailsTableLeft" class="table index-table">
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.FirstName)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.FirstName)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.MiddleName)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.MiddleName)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.LastName)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.LastName)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.Department)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.Department)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.Position)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.Position)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.Fulltime)</td>
+                    <td id="checkboxParent">@Html.DisplayFor(modelItem => Model.Fulltime)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.HireDate)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.HireDate)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.EndDate)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.EndDate)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.LoginName)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.LoginName)</td>
+                </tr>
+            </table>
+            <table id="detailsTableRight" class="table index-table">
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.BirthDate)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.BirthDate)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.WorkEmail)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.WorkEmail)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.AlternateEmail)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.AlternateEmail)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.WorkPhone)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.WorkPhone)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.HomePhone)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.HomePhone)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.MobilePhone)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.MobilePhone)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.Address)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.Address)</td>
+                </tr>
+                <tr>
+                    <td class="index-title">@Html.DisplayNameFor(model => model.HourlyPayRate)</td>
+                    <td>@Html.DisplayFor(modelItem => Model.HourlyPayRate)</td>
+                </tr>
+            </table>
+        </div>
+        <div id="admin-view-work-periods" style="overflow: auto; height: 100%; width: 800px;" class="tab-pane fade">
+            <table class="table"></table>
+            <div class="row">
+                <div id="smallCalendarContainer">
+                    <div id="calendar1"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="admin-view-schedule" style="overflow: auto; height: 100%; width: 800px;" class="tab-pane fade">
+            <table class="table"></table>
+            <div id="smallCalendarContainer">
+                <div id="calendar2"></div>
+            </div>
+        </div>
+
+        @{
+            string Disabled = "";
+            string disabledstyle = "";
+            if (User.Identity.Name == Model.LoginName)
+            {
+                Disabled = "Disabled";
+                disabledstyle = "disabledslider";
+            }
+        }
+
+        <div id="admin-view-toggles" style="overflow: auto; height: 100%; width: 800px;" class="tab-pane fade">
+            <table class="table"></table>
+            <div id="toggleButtonsContainer">
+                <input id="userId" type="hidden" />
+                <input id="userRole" type="hidden" />
+
+                <div>
+                    <label>
+                        <label class="switch">
+                            <input id="adminSwitch" type="checkbox" onchange="handleChange(this)" @Disabled>
+                            <span class="slider round @disabledstyle"></span>
+                        </label>
+                        Admin
+                    </label>
+                    <p>
+                        This will give a user full access to the administrative panel including,
+                        creating, updating and deleting employees.
+                    </p>
+
+                    <label>
+                        <label class="switch">
+                            <input id="blockSwitch" type="checkbox" onchange="handleChange(this)" @Disabled>
+                            <span class="slider round @disabledstyle"></span>
+                        </label>
+                        Block Account Access
+                    </label>
+                    <p>
+                        This will prevent the employee from logging in or clocking
+                        in to the system but does not stop schedules
+                    </p>
+
+                    <label>
+                        <label class="switch">
+                            <input id="viewModeSwitch" type="checkbox" onchange="handleChange(this)" @Disabled>
+                            <span class="slider round @disabledstyle"></span>
+                        </label>
+                        View Mode Only
+                    </label>
+                    <p>
+                        The user can still login, view their clockin record, notes,
+                        schedules and timeoffrequests but cannot make any changes
+                        including<br /> clocking in, making requests for time off etc..
+                        Use for contracted employees or sabbaticals in which a there<br />
+                        is a long-term break but potential future employment.
+                    </p>
+
+                    <label>
+                        <input type="button" value="Stop Employment" class="btn btn-danger" onclick="handleClick()" @Disabled>
+                    </label>
+                    <p>
+                        This will deactivate the user's account and end their
+                        schedule on the selected date. This is for permanent cessation of employment.
+                    </p>
+                    
+                        @if (Disabled != "Disabled")
+                        {
+                            @Html.ActionLink("Delete Employee", "Delete", new { Id = Model.Id }, new { @class = "btn btn-danger" });
+                        }
+                        else
+                        {
+                            @Html.ActionLink("Delete Employee", "Delete", new { Id = Model.Id }, new { @class = "btn btn-danger", disabled = "disabled" });
+                        }
+                    <p>
+                        This is a permanent action. Only delete if the individual was never
+                        officially employed.
+                    </p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

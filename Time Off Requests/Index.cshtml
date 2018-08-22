@@ -1,0 +1,17 @@
+﻿@model IEnumerable<ScheduleUsers.ViewModels.TimeOffViewModel>
+@{
+    ViewBag.Title = "Index";
+}
+
+<h3>Pending Requests</h3>
+
+<p>
+    @Html.ActionLink("Create New", "Create")
+</p>
+
+
+@{Html.RenderAction("ProcessedIndex", new { data = "index" });}
+
+<h3>Approved Requests</h3>
+
+@{Html.RenderAction("ProcessedIndex", new { data = "processsed" });}

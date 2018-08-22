@@ -1,0 +1,440 @@
+﻿@model IEnumerable<ScheduleUsers.Models.ApplicationUser>
+
+@{
+    ViewBag.Title = "Index";
+}
+
+
+<!--Dropdown Menu-->
+<div class="row" style="margin-top: 20px;">
+        <div class="col-sm-6 col-md-4 col-lg-3">
+            <div class="dropdown">
+                <button id="button-dropdown" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                    Filters
+                    <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li class="dropdown-submenu" style="position: relative;">
+                        <a class="test" tabindex="-1" href="#">Position <span class="caret"></span></a>
+                        <ul class="dropdown-menu" style="top:0; left:100%; margin-top: -1px;">
+                            @foreach (var position in ViewBag.Positions)
+                            {
+                                <li><a tabindex="-1" onclick="loadUsers('pos-@position.Text')">@position.Text</a></li>
+                            }
+                        </ul>
+                    </li>
+                    <li class="dropdown-submenu" style="position: relative;">
+                        <a class="test" tabindex="-1" href="#">Department <span class="caret"></span></a>
+                        <ul class="dropdown-menu" style="top:0; left:100%; margin-top: -1px;">
+                            @foreach (var department in ViewBag.Departments)
+                            {
+                                <li><a tabindex="-1" onclick="loadUsers('dpt-@department.Text')">@department.Text</a></li>
+                            }
+                        </ul>
+                    </li>
+                    <li><a tabindex="-1" onclick="loadUsers('FullTime')">Full Time</a></li>
+                    <li><a tabindex="-1" onclick="loadUsers('PartTime')">Part Time</a></li>
+                    <li><a tabindex="-1" onclick="loadUsers('ClockedIn')">Clocked In</a></li>
+                    <li><a tabindex="-1" onclick="loadUsers('ClockedOut')">Clocked Out</a></li>
+                </ul>
+            </div>
+
+            <input class="form-control my-1" id="indexSearch" type="text" onkeyup="searchFunction()" placeholder="Search" title="Search" />
+        </div>
+
+        <div class="title-container col-sm-6 col-md-8 col-lg-9">
+            <h2 class="text-center" id="page-title">Employees</h2>
+
+            <a href="/Employer/User/Register" id="add-employee-btn">Add Employee</a>
+        </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-6 col-md-4 col-lg-3" style="overflow: auto;" id="user-table-container">
+        <table class="table" id="indexusertable">
+
+            @{Html.RenderAction("IndexUserList");}
+
+        </table>
+    </div>
+    <div class=" col-sm-6 col-md-8 col-lg-9 index-display-div" id="details-div">
+        Details for the selected employee will be displayed here
+    </div>
+</div>
+
+<!-- The Calendar Event Modal -->
+<div id="fullCalModal" class="modal fade">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span> <span class="sr-only">close</span></button>
+                <h4 id="modalTitle" class="modal-title"></h4>
+            </div>
+            <div id="modalBody" class="modal-body"> </div>
+            <div id="modalNote" class="modal-body"> </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function offset(el) {
+        const rect = el.getBoundingClientRect(),
+            scrollLeft = window.pageXOffset || document.documentElement.scrollLeft,
+            scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        return { top: rect.top + scrollTop, left: rect.left + scrollLeft }
+    }
+
+    //Fix styling issues
+    $(document).ready(() => {
+        let $element = $("#indexSearch");
+        $element.css("max-width", "100%");
+
+        let lastWidth = $element.css("width");
+        $("#button-dropdown").css("width", lastWidth);
+
+        //This is how we make the two divs take up the rest of the height
+        const detailsDiv = document.getElementById("details-div");
+        const userTableDiv = document.getElementById("user-table-container");
+        const footer = document.getElementById("fixed-footer");
+
+        const divOffset = offset(detailsDiv);
+        //The 35 is to make up for the padding issues
+        const newElementHeight = window.innerHeight - divOffset.top - footer.clientHeight - 35;
+        detailsDiv.style.height = newElementHeight + "px";
+        userTableDiv.style.height = newElementHeight + "px";
+    });
+
+    $(window).resize(function () {
+        let $element = $("#indexSearch");
+        let lastWidth = $element.css("width");
+        $("#button-dropdown").css("width", lastWidth);
+
+        //This is how we make the two divs take up the rest of the height
+        const detailsDiv = document.getElementById("details-div");
+        const userTableDiv = document.getElementById("user-table-container");
+        const footer = document.getElementById("fixed-footer");
+
+        const divOffset = offset(detailsDiv);
+        const newElementHeight = window.innerHeight - divOffset.top - footer.clientHeight - 35;
+        detailsDiv.style.height = newElementHeight + "px";
+        userTableDiv.style.height = newElementHeight + "px";
+    });
+
+
+</script>
+
+<!-- /Calendar Event Modal -->
+<!-- This is the ajax call that brings up more details about the user from the details link -->
+<script>
+    function loadDetails(userId, firstName, lastName) {
+        const pageTitle = document.getElementById("page-title");
+        pageTitle.innerHTML = lastName + ", " + firstName;
+
+        jQuery.ajax({
+            'url': '@Url.Action("ViewUserDetails","User")',
+            'type': 'GET',
+            'data': {
+                id: userId
+            },
+            'success': function (data) {
+                document.getElementById("details-div").innerHTML = data;
+                showEventCalendar(userId);
+                showSchedule(userId);
+            },
+            'error': function (request, error) {
+                alert("Request: " + JSON.stringify(request));
+            }
+        });
+    };
+
+    function searchFunction() {
+        var input, filter, tr, td, a, i;
+        input = document.getElementById("indexSearch");
+        filter = input.value.toUpperCase();
+        tr = document.getElementById("indexTable")
+        td = document.getElementsByTagName("td");
+        for (i = 0; i < td.length; i++) {
+            a = td[i].getElementsByTagName("a")[0];
+            if (a.innerHTML.toUpperCase().indexOf(filter) > -1) {
+                td[i].style.display = "";
+            } else {
+                td[i].style.display = "none";
+            }
+        }
+    }
+
+
+    // this is the function to bring up a calendar for clockin/clockout events
+function showEventCalendar(userId) {
+    $('#calendar1').fullCalendar({
+        header: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'month,agendaWeek,agendaDay'
+        },
+        eventClick: function (event, jsEvent, view) {
+            $('#modalTitle').html(event.title);
+            $('#modalBody').html(event.description);
+            $('#eventUrl').attr('href', event.url);
+            $('#fullCalModal').modal();
+            return false;
+        },
+        events: '@Url.Action("getUserEvents", "Calendar", new { area= ""})' + '/' + userId,
+        defaultView: 'month',
+        editable: true,
+        allDaySlot: false,
+        selectable: true,
+        slotMinutes: 15,
+        displayEventEnd: true,
+        timezone: "local"
+    });
+};
+
+// this is the calendar function for the selected user's schedule
+function showSchedule(userId) {
+    $('#calendar2').fullCalendar({
+        header: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'month,agendaWeek,agendaDay'
+        },
+        eventClick: function (event, jsEvent, view) {
+            $('#modalTitle').html(event.title);
+            $('#modalBody').html(event.description);
+            $('#eventUrl').attr('href', event.url);
+            $('#fullCalModal').modal();
+            return false;
+        },
+        events: '@Url.Action("getUserSchedule", "Calendar", new { area= ""})' + '/' + userId,
+        defaultView: 'month',
+        editable: true,
+        allDaySlot: false,
+        selectable: true,
+        slotMinutes: 15,
+        displayEventEnd: true,
+        timezone: "local"
+    });
+};
+
+    function editDetails() {
+        //Make so clicking on the edit icon nothing happens until the details are saved in handleSaveChanges()
+        const editDetailsIcon = document.getElementById("editDetailsIcon");
+        editDetailsIcon.onclick = null;
+
+
+        const tLeft = document.getElementById("detailsTableLeft");
+        const tdCollectionLeft = tLeft.getElementsByTagName("td");
+        const tRight = document.getElementById("detailsTableRight");
+        const tdCollectionRight = tRight.getElementsByTagName("td");
+
+        const tdArrayRight = Array.from(tdCollectionRight);
+        const tdArrayLeft = Array.from(tdCollectionLeft);
+        let tdArray = tdArrayLeft.concat(tdArrayRight);
+
+        //Remove elements that are just titles
+        tdArray = tdArray.filter(function (el) {
+            if (!(el.classList.contains("index-title")) && el.id !== "checkboxParent") {
+                return el;
+            }
+        });
+
+        //Change the outerHTML of the elements to make them into inputs
+        for (let i = 0; i < tdArray.length; i++) {
+            //Add id to every input element so it is easy to access all of them later
+            tdArray[i].outerHTML = "<input id='" + i + "' type='text' value='" + tdArray[i].innerHTML + "'>";
+        }
+
+        //Let checkbox be editable
+        const editCheckbox = document.getElementsByClassName("check-box");
+        editCheckbox[0].disabled = false;
+
+        document.getElementById("saveChangesButton").style.display = "block";
+    }
+
+    function handleSaveChanges() {
+        let detailsArray = [];
+        //There are 16 inputs and we will get data from them in order
+        for (let i = 0; i < 16; i++) {
+            detailsArray.push(document.getElementById(i));
+        }
+
+        const userId = document.getElementById("detailsUserId").value;
+        jQuery.ajax({
+            'url': '@Url.Action("Edit","User")',
+            'type': 'POST',
+            'data': {
+                Id: userId,
+                FirstName: detailsArray[0].value,
+                MiddleName: detailsArray[1].value,
+                LastName: detailsArray[2].value,
+                Department: detailsArray[3].value,
+                Position: detailsArray[4].value,
+                HireDate: detailsArray[5].value,
+                EndDate: detailsArray[6].value,
+                LoginName: detailsArray[7].value,
+                BirthDate: detailsArray[8].value,
+                WorkEmail: detailsArray[9].value,
+                AlternateEmail: detailsArray[10].value,
+                WorkPhone: detailsArray[11].value,
+                HomePhone: detailsArray[12].value,
+                MobilePhone: detailsArray[13].value,
+                Address: detailsArray[14].value,
+                HourlyPayRate: detailsArray[15].value,
+                FullTime: document.getElementsByClassName("check-box")[0].checked
+            },
+            'success': function (data) {
+                data = (data === "true");
+                if (data) {
+                    //details-btn-item.Id is the firstname plus lastname
+                    document.getElementById("details-btn-" + userId).innerHTML = detailsArray[0].value + " " + detailsArray[2].value;
+
+                    for (let i = 0; i < detailsArray.length; i++) {
+                        detailsArray[i].outerHTML = "<td>" + detailsArray[i].value + "</td>"
+                    }
+                    const editCheckbox = document.getElementsByClassName("check-box");
+                    editCheckbox[0].disabled = true;
+
+                    document.getElementById("saveChangesButton").style.display = "none";
+                    document.getElementById("editDetailsIcon").onclick = editDetails;
+
+                } else {
+                    alert("The User could not be updated please contact your administrator!");
+                }
+
+            },
+            'error': function (request, error) {
+                alert("Request: " + JSON.stringify(request));
+            }
+        });
+
+    }
+
+    //this is the function to sync all of the buttons to a particular user
+    function showDeleteAndBlock(userId, userRole) {
+        $("#userId").val(userId);
+        $("#userRole").val(userRole);
+
+        if (userRole === "Admin") {
+            $("#adminSwitch").prop("checked", true);
+        } else if (userRole === "Blocked") {
+            $("#blockSwitch").prop("checked", true);
+        } else if (userRole === "Terminated") {
+            //Dont do anything for terminated yet
+            console.log("This user is terminated");
+        } else if (userRole === "ViewMode") {
+            $("#viewModeSwitch").prop("checked", true);
+        }
+    }
+
+    function handleChange(ele) {
+        const Id = $("#userId").val();
+        const userRole = $("#userRole").val();
+
+        let adminChecked = false;
+        let blockChecked = false;
+        let viewModeChecked = false;
+        if (ele.id === "adminSwitch" && $(ele).prop("checked")) {
+            adminChecked = $(ele).prop("checked");
+            $("#blockSwitch").prop("checked", false);
+            $("#viewModeSwitch").prop("checked", false);
+        } else if (ele.id === "blockSwitch" && $(ele).prop("checked")) {
+            blockChecked = $(ele).prop("checked");
+            $("#adminSwitch").prop("checked", false);
+            $("#viewModeSwitch").prop("checked", false);
+        } else if (ele.id === "viewModeSwitch" && $(ele).prop("checked")) {
+            viewModeChecked = $(ele).prop("checked");
+            $("#adminSwitch").prop("checked", false);
+            $("#blockSwitch").prop("checked", false);
+        }
+
+
+        let role;
+        if (adminChecked) {
+            role = "Admin";
+            console.log("Admin is checked");
+        } else if (blockChecked) {
+            role = "Blocked";
+            console.log("block is checked");
+        } else if (viewModeChecked) {
+            role = "ViewMode";
+            console.log("ViewMode is checked");
+        } else {
+            role = "User";
+        }
+
+        jQuery.ajax({
+            'url': '@Url.Action("ChangeRole","User")',
+            'type': 'POST',
+            'data': {
+                userId: Id,
+                currentRole: userRole,
+                roleToChangeTo: role
+            },
+            'success': function (data) {
+                $("#role").html("Role: " + role);
+                $("#userRole").val(role);
+            },
+            'error': function (request, error) {
+                alert("Request: " + JSON.stringify(request));
+            }
+        });
+    }
+
+    function handleClick() {
+        const Id = $("#userId").val();
+        const userRole = $("#userRole").val();
+        const role = "Terminated";
+
+        $("#adminSwitch").prop("checked", false);
+        $("#blockSwitch").prop("checked", false);
+        $("#viewModeSwitch").prop("checked", false);
+
+        jQuery.ajax({
+            'url': '@Url.Action("ChangeRole","User")',
+            'type': 'POST',
+            'data': {
+                userId: Id,
+                currentRole: userRole,
+                roleToChangeTo: role
+            },
+            'success': function (data) {
+                $("#role").html("Role: " + role);
+
+                $("#userRole").val(role);
+            },
+            'error': function (request, error) {
+                alert("Request: " + JSON.stringify(request));
+            }
+        });
+    }
+    //Function to filter users in UserController
+    function loadUsers(filter) {
+        jQuery.ajax({
+            'url': '@Url.Action("IndexUserList")',
+            'type': 'GET',
+            'data': {
+                filter: filter
+            },
+            'success': function (data) {
+                document.getElementById("indexusertable").innerHTML = data;
+            },
+            'error': function (request, error) {
+                alert("Request: " + JSON.stringify(request));
+            }
+        });
+    };
+    //Javascript for multi level dropdown list
+    $(document).ready(function () {
+        $('.dropdown-submenu a.test').on("click", function (e) {
+            $(this).next('ul').toggle();
+            e.stopPropagation();
+            e.preventDefault();
+        });
+    });
+</script>
+
+
+
